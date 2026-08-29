@@ -1,0 +1,6 @@
+{
+  "text": "Heute erreichen Sie Temperaturen zwischen 18 und 26 Grad bei bedecktem Himmel und einem Regenrisiko von 35 Prozent, wobei kein Niederschlag erwartet wird. Die Tendenz zeigt in den kommenden Tagen wechselhaftes Wetter mit teils deutlichen Regenschauern, insbesondere am Montag und Donnerstag, wo die Wahrscheinlichkeit und Menge am höchsten sind. Da es abends und nachts mit Werten um die 16 bis 19 Grad deutlich kühler wird und es an mehreren Tagen regnen kann, ist eine Jacke sowie ein Schirm empfehlenswert.",
+  "erstellt": "29.08.2026 um 14:00",
+  "modell": "Qwen3.6-35B-A3B-UD-IQ4_XS.gguf",
+  "grundlage": "Jetzt: 25 Grad, gefuehlt 23, ueberwiegend klar, Wind 16 km/h.\nHeute 29.08.: 18 bis 26 Grad, bedeckt, Regenrisiko 35 Prozent, 0.0 mm, Wind bis 17 km/h.\nSonntag 30.08.: 19 bis 26 Grad, Regenschauer, Regenrisiko 25 Prozent, 0.0 mm, Wind bis 20 km/h.\nMontag 31.08.: 18 bis 25 Grad, Regenschauer, Regenrisiko 70 Prozent, 1.5 mm, Wind bis 14 km/h.\nDienstag 01.09.: 16 bis 22 Grad, Regenschauer, Regenrisiko 14 Prozent, 0.9 mm, Wind bis 16 km/h.\nMittwoch 02.09.: 14 bis 24 Grad, bedeckt, Regenrisiko 17 Prozent, 0.0 mm, Wind bis 12 km/h.\nDonnerstag 03.09.: 16 bis 23 Grad, Regenschauer, Regenrisiko 69 Prozent, 5.4 mm, Wind bis 20 km/h.\nFreitag 04.09.: 16 bis 22 Grad, leichter Regen, Regenrisiko 51 Prozent, 0.3 mm, Wind bis 17 km/h."
+}
