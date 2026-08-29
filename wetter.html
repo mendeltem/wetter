@@ -55,8 +55,13 @@
 
   h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:24px 0 10px}
   .pad{padding:16px 18px 10px}
-  .chart{width:100%;height:auto;display:block;overflow:visible}
+  /* Auf schmalen Schirmen nicht schrumpfen, sondern seitlich scrollen:
+     bei 305 px Breite waere die Achsenbeschriftung effektiv 4,7 px gross. */
+  .pad.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .chart{width:100%;min-width:540px;height:auto;display:block;overflow:visible}
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);padding:0 20px 14px}
+  .swipe{display:none}
+  @media (max-width:600px){ .swipe{display:inline} }
   .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
 
   .days{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
@@ -114,18 +119,19 @@
 
   <h2 class="sec">Tagesverlauf</h2>
   <div class="card">
-    <div class="pad"><svg id="dayChart" class="chart" viewBox="0 0 720 250" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="pad scroll"><svg id="dayChart" class="chart" viewBox="0 0 720 250" preserveAspectRatio="xMidYMid meet"></svg></div>
     <div class="legend">
       <span><i style="background:var(--warm)"></i>Temperatur</span>
       <span><i style="background:var(--cold);opacity:.55"></i>gefühlt</span>
       <span><i style="background:var(--rain);opacity:.5"></i>Regenrisiko</span>
       <span><i style="background:var(--night);border:1px solid var(--line)"></i>Nacht</span>
+      <span class="swipe">seitlich wischen für den ganzen Tag</span>
     </div>
   </div>
 
   <h2 class="sec">Wie sich die Wolken entwickeln</h2>
   <div class="card">
-    <div class="pad"><svg id="cloudChart" class="chart" viewBox="0 0 720 168" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="pad scroll"><svg id="cloudChart" class="chart" viewBox="0 0 720 168" preserveAspectRatio="xMidYMid meet"></svg></div>
     <div class="legend">
       <span>Je dunkler, desto mehr Bedeckung. Hohe Wolken sind dünn und lassen Sonne durch, tiefe machen den Tag grau.</span>
     </div>
