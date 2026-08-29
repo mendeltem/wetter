@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wetter Berlin</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#fff; --fg:#16181d; --dim:#5b6270; --line:#e3e6eb;
+    --accent:#2f6feb; --warm:#d9822b; --cold:#3b82c4; --rain:#4a7fb5;
+    --shadow:0 1px 2px rgba(16,20,28,.06),0 8px 24px rgba(16,20,28,.06);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1216; --card:#171b21; --fg:#e8eaee; --dim:#98a1b0; --line:#252b34;
+      --accent:#6aa0ff; --warm:#e5a154; --cold:#6fb0e0; --rain:#6ea3d4;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1216; --card:#171b21; --fg:#e8eaee; --dim:#98a1b0; --line:#252b34;
+    --accent:#6aa0ff; --warm:#e5a154; --cold:#6fb0e0; --rain:#6ea3d4;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    padding:24px 16px 56px;
+  }
+  .wrap{max-width:900px;margin:0 auto}
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  h1{font-size:22px;margin:0;letter-spacing:-.01em}
+  .stamp{color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+
+  .now{padding:22px 24px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .now .icon{font-size:56px;line-height:1}
+  .now .temp{font-size:52px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .now .desc{font-size:17px}
+  .now .sub{color:var(--dim);font-size:14px;margin-top:2px}
+  .now .grid{margin-left:auto;display:grid;grid-template-columns:repeat(2,auto);gap:4px 22px;font-size:14px}
+  .now .grid dt{color:var(--dim)}
+  .now .grid dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+  .pair{display:contents}
+
+  .summary{padding:18px 24px;margin-bottom:16px}
+  .summary h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:0 0 8px}
+  .summary p{margin:0;font-size:16px}
+  .summary .by{color:var(--dim);font-size:12px;margin-top:10px}
+
+  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:24px 0 10px}
+  .days{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+  .day{padding:14px 10px;text-align:center}
+  .day .dow{font-weight:600;font-size:14px}
+  .day .date{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
+  .day .ic{font-size:28px;margin:8px 0 6px;line-height:1}
+  .day .hi{font-weight:600;font-variant-numeric:tabular-nums}
+  .day .lo{color:var(--dim);font-variant-numeric:tabular-nums}
+  .day .rain{color:var(--rain);font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums;min-height:1.2em}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  tbody tr:last-child td{border-bottom:0}
+  .hi-t{color:var(--warm);font-variant-numeric:tabular-nums}
+  .lo-t{color:var(--cold);font-variant-numeric:tabular-nums}
+
+  footer{margin-top:28px;color:var(--dim);font-size:12.5px}
+  footer a{color:var(--accent)}
+  .err{padding:18px 24px;color:var(--dim)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Wetter Berlin</h1>
+    <div class="stamp" id="stamp">wird geladen …</div>
+  </header>
+
+  <section class="card now" id="now">
+    <div class="err">Aktuelle Werte werden geladen …</div>
+  </section>
+
+  <section class="card summary" id="summary" hidden>
+    <h2>Zusammenfassung</h2>
+    <p id="summary-text"></p>
+    <div class="by" id="summary-by"></div>
+  </section>
+
+  <h2 class="sec">Die nächsten Tage</h2>
+  <div class="days" id="days"></div>
+
+  <h2 class="sec">Woche im Detail</h2>
+  <div class="card scroll">
+    <table>
+      <thead>
+        <tr><th>Tag</th><th>Wetter</th><th>Max</th><th>Min</th><th>Regen</th><th>Menge</th><th>Wind</th><th>Sonne</th></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <footer>
+    Daten: <a href="https://open-meteo.com/">Open-Meteo</a>, direkt im Browser abgerufen —
+    die Seite ist damit immer aktuell, auch ohne neuen Build.
+    Die Zusammenfassung schreibt ein lokal laufendes Sprachmodell,
+    <a href="https://github.com/mendeltem/wetter">Quelltext</a>.
+  </footer>
+
+</div>
+
+<script>
+// WMO-Wettercodes. Quelle: Open-Meteo-Dokumentation.
+const WMO = {
+  0:["Klar","☀️"], 1:["Überwiegend klar","🌤️"], 2:["Teils bewölkt","⛅"], 3:["Bedeckt","☁️"],
+  45:["Nebel","🌫️"], 48:["Reifnebel","🌫️"],
+  51:["Leichter Nieselregen","🌦️"], 53:["Nieselregen","🌦️"], 55:["Starker Nieselregen","🌧️"],
+  56:["Gefrierender Niesel","🌨️"], 57:["Gefrierender Niesel","🌨️"],
+  61:["Leichter Regen","🌦️"], 63:["Regen","🌧️"], 65:["Starker Regen","🌧️"],
+  66:["Gefrierender Regen","🌨️"], 67:["Gefrierender Regen","🌨️"],
+  71:["Leichter Schneefall","🌨️"], 73:["Schneefall","❄️"], 75:["Starker Schneefall","❄️"],
+  77:["Schneegriesel","❄️"],
+  80:["Regenschauer","🌦️"], 81:["Regenschauer","🌧️"], 82:["Heftige Schauer","⛈️"],
+  85:["Schneeschauer","🌨️"], 86:["Starke Schneeschauer","❄️"],
+  95:["Gewitter","⛈️"], 96:["Gewitter mit Hagel","⛈️"], 99:["Schweres Gewitter","⛈️"]
+};
+const wmo = c => WMO[c] || ["unbekannt","·"];
+const DOW = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+
+const URL = "https://api.open-meteo.com/v1/forecast"
+  + "?latitude=52.52&longitude=13.405"
+  + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m"
+  + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,"
+  + "precipitation_probability_max,wind_speed_10m_max,sunrise,sunset"
+  + "&timezone=Europe%2FBerlin&forecast_days=7";
+
+const hhmm = iso => iso.slice(11,16);
+const t1 = v => (v==null ? "–" : v.toFixed(1).replace(".",",") + " °C");
+
+async function load(){
+  let d;
+  try {
+    const r = await fetch(URL, {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    d = await r.json();
+  } catch(e){
+    document.getElementById("now").innerHTML =
+      '<div class="err">Wetterdaten nicht erreichbar (' + e.message + '). ' +
+      'Die Seite braucht dafür eine Internetverbindung.</div>';
+    document.getElementById("stamp").textContent = "offline";
+    return;
+  }
+
+  const c = d.current, dd = d.daily, [txt, ic] = wmo(c.weather_code);
+
+  document.getElementById("stamp").textContent =
+    "Stand " + hhmm(c.time) + " Uhr · " + new Date(c.time).toLocaleDateString("de-DE",
+      {weekday:"long", day:"numeric", month:"long"});
+
+  document.getElementById("now").innerHTML =
+    '<div class="icon">' + ic + '</div>' +
+    '<div><div class="temp">' + Math.round(c.temperature_2m) + '°</div>' +
+    '<div class="desc">' + txt + '</div>' +
+    '<div class="sub">gefühlt ' + t1(c.apparent_temperature) + '</div></div>' +
+    '<dl class="grid">' +
+      '<div class="pair"><dt>Wind</dt><dd>' + Math.round(c.wind_speed_10m) + ' km/h</dd></div>' +
+      '<div class="pair"><dt>Feuchte</dt><dd>' + c.relative_humidity_2m + ' %</dd></div>' +
+      '<div class="pair"><dt>Niederschlag</dt><dd>' + c.precipitation.toFixed(1).replace(".",",") + ' mm</dd></div>' +
+      '<div class="pair"><dt>Sonne</dt><dd>' + hhmm(dd.sunrise[0]) + '–' + hhmm(dd.sunset[0]) + '</dd></div>' +
+    '</dl>';
+
+  const days = document.getElementById("days");
+  const tb = document.getElementById("tbody");
+  days.innerHTML = ""; tb.innerHTML = "";
+
+  dd.time.forEach((iso, i) => {
+    const dt = new Date(iso + "T12:00:00");
+    const [dtxt, dic] = wmo(dd.weather_code[i]);
+    const dow = i === 0 ? "Heute" : DOW[dt.getDay()];
+    const prob = dd.precipitation_probability_max[i];
+
+    const el = document.createElement("div");
+    el.className = "card day";
+    el.innerHTML =
+      '<div class="dow">' + dow + '</div>' +
+      '<div class="date">' + dt.getDate() + "." + (dt.getMonth()+1) + '.</div>' +
+      '<div class="ic" title="' + dtxt + '">' + dic + '</div>' +
+      '<div><span class="hi">' + Math.round(dd.temperature_2m_max[i]) + '°</span> ' +
+      '<span class="lo">' + Math.round(dd.temperature_2m_min[i]) + '°</span></div>' +
+      '<div class="rain">' + (prob >= 20 ? prob + ' %' : "") + '</div>';
+    days.appendChild(el);
+
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + dow + ", " + dt.getDate() + "." + (dt.getMonth()+1) + ".</td>" +
+      "<td>" + dic + " " + dtxt + "</td>" +
+      '<td class="hi-t">' + t1(dd.temperature_2m_max[i]) + "</td>" +
+      '<td class="lo-t">' + t1(dd.temperature_2m_min[i]) + "</td>" +
+      "<td>" + prob + " %</td>" +
+      "<td>" + dd.precipitation_sum[i].toFixed(1).replace(".",",") + " mm</td>" +
+      "<td>" + Math.round(dd.wind_speed_10m_max[i]) + " km/h</td>" +
+      "<td>" + hhmm(dd.sunrise[i]) + "–" + hhmm(dd.sunset[i]) + "</td>";
+    tb.appendChild(tr);
+  });
+}
+
+// Die Zusammenfassung liegt als kleine JSON-Datei daneben und wird vom
+// 6-Uhr-Lauf erneuert. Fehlt sie, bleibt der Abschnitt einfach weg.
+async function loadSummary(){
+  try {
+    const r = await fetch("zusammenfassung.json?t=" + Date.now(), {cache:"no-store"});
+    if(!r.ok) return;
+    const s = await r.json();
+    if(!s.text) return;
+    document.getElementById("summary-text").textContent = s.text;
+    document.getElementById("summary-by").textContent =
+      "geschrieben " + s.erstellt + " von " + (s.modell || "dem lokalen Modell");
+    document.getElementById("summary").hidden = false;
+  } catch(e){ /* ohne Zusammenfassung ist die Seite trotzdem vollstaendig */ }
+}
+
+load(); loadSummary();
+setInterval(load, 10 * 60 * 1000);   // alle 10 Minuten nachladen
+</script>
+</body>
+</html>
