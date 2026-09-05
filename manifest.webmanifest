@@ -1,0 +1,19 @@
+{
+  "name": "Wetter Berlin",
+  "short_name": "Wetter",
+  "description": "Tagesverlauf, Regenzeitfenster und Wolkenentwicklung für Berlin.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./wetter.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080c0f",
+  "theme_color": "#080c0f",
+  "orientation": "any",
+  "icons": [
+    { "src": "icons/icon-192.png",          "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png",          "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
