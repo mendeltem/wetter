@@ -17,10 +17,10 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-GRUND = (8, 12, 15)         # --bg    #080c0f
-SONNE = (240, 168, 48)      # --accent #f0a830
-WOLKE = (125, 153, 162)     # --muted  #7d99a2
-HELL = (232, 241, 243)      # --ink    #e8f1f3
+GRUND = (8, 17, 12)         # --bg    #08110c  (moos)
+SONNE = (242, 181, 68)      # --accent #f2b544
+WOLKE = (135, 164, 147)     # --muted  #87a493
+HELL = (232, 242, 234)      # --ink    #e8f2ea
 
 HIER = Path(__file__).resolve().parent
 

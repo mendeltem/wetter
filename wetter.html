@@ -13,16 +13,53 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Wetter">
+<script>
+// Muss vor dem ersten Malen laufen, sonst blitzt kurz die Vorgabe auf.
+// ?theme=tanne merkt sich die Wahl, damit auch die installierte App sie behaelt.
+(function(){
+  var GRUND = {moos:"#08110c", tanne:"#060d0a", petrol:"#05100e"};
+  var w = new URLSearchParams(location.search).get("theme");
+  if(!(w in GRUND)){ try{ w = localStorage.getItem("wetter-theme"); }catch(e){} }
+  if(!(w in GRUND)) w = "moos";
+  if(w !== "moos") document.documentElement.dataset.theme = w;
+  try{ localStorage.setItem("wetter-theme", w); }catch(e){}
+  // Die Statusleiste des Telefons faerbt sich nach theme-color
+  document.addEventListener("DOMContentLoaded", function(){
+    var m = document.querySelector('meta[name=theme-color]');
+    if(m) m.content = GRUND[w];
+  });
+})();
+</script>
 <style>
- /* Farben und Schrift von clara_working_station uebernommen, damit die Seiten
+ /* Schrift und Raster von clara_working_station uebernommen, damit die Seiten
     zusammengehoeren. Bewusst nur dunkel - die Hauptseite hat auch keine helle
     Fassung, und eine halb angeglichene Seite sieht schlechter aus als eine
-    ganz angeglichene. */
+    ganz angeglichene.
+
+    Drei Gruentoene zur Wahl, umschaltbar mit ?theme=moos|tanne|petrol.
+    Alle Textkontraste nachgerechnet: Fliesstext ueber 14:1, Gedaempftes ueber
+    5,8:1, jede Akzentfarbe ueber 5,8:1 gegen die Karte. Die Kartenlinie liegt
+    bei 1,69 gegen den Grund - dekorativ, und besser als die 1,56 der
+    Hauptseite. */
+
+ /* moos - Vorgabe: am deutlichsten gruen, Karten trennen sich am besten */
  :root{
-   --bg:#080c0f; --panel:#0f1a20; --line:#22363f; --ink:#e8f1f3; --muted:#7d99a2;
-   --accent:#f0a830;        /* Bernstein - hier die Temperatur */
-   --accent2:#33c6b6;       /* Tuerkis - gefuehlt, Entwarnung */
-   --rain:#5b9dd9; --night:#0c1319; --cloud:#7d99a2; --warn:#e8734a;
+   --bg:#08110c; --panel:#111f17; --line:#24402f; --ink:#e8f2ea; --muted:#87a493;
+   --accent:#f2b544;        /* Bernstein - hier die Temperatur */
+   --accent2:#5ad39b;       /* Minze - gefuehlt, Entwarnung */
+   --rain:#6cb4e4; --night:#0b1710; --cloud:#87a493; --warn:#ec7d52;
+ }
+ /* tanne - tieferer, kuehlerer Grund */
+ :root[data-theme="tanne"]{
+   --bg:#060d0a; --panel:#0d1a14; --line:#1e3a2c; --ink:#e4f0e8; --muted:#7d9a8a;
+   --accent:#f0a830; --accent2:#4fd1a5;
+   --rain:#62aee0; --night:#091310; --cloud:#7d9a8a; --warn:#e8734a;
+ }
+ /* petrol - behaelt das Tuerkis der Hauptseite, gruener Grund */
+ :root[data-theme="petrol"]{
+   --bg:#05100e; --panel:#0c1c19; --line:#1c3a35; --ink:#e2f1ee; --muted:#7ba098;
+   --accent:#f0a830; --accent2:#33c6b6;
+   --rain:#5b9dd9; --night:#08150f; --cloud:#7ba098; --warn:#e8734a;
  }
  *{box-sizing:border-box;margin:0;padding:0}
  html{-webkit-text-size-adjust:100%}
@@ -221,7 +258,9 @@
     einem CDN. Den Fließtext schreibt jeden Morgen ein Sprachmodell auf einem
     eigenen Rechner.<br><br>
     Teil von <a href="https://mendeltem.github.io/clara_working_station/">Clara Working
-    Station</a> · <a href="https://github.com/mendeltem/wetter">Quelltext</a>
+    Station</a> · <a href="https://github.com/mendeltem/wetter">Quelltext</a><br>
+    Farbe: <a href="?theme=moos">Moos</a> · <a href="?theme=tanne">Tanne</a> ·
+    <a href="?theme=petrol">Petrol</a>
   </footer>
 
 <script>
