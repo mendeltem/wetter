@@ -13,7 +13,7 @@
  * VERSION bei jeder Aenderung der Huelle hochzaehlen, sonst behalten
  * installierte Geraete die alte Fassung, bis der Cache verfaellt.
  */
-const VERSION = "v6";
+const VERSION = "v7";
 const HUELLE = "wetter-huelle-" + VERSION;
 const DATEN  = "wetter-daten-" + VERSION;
 
