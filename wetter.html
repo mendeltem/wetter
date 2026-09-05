@@ -4,26 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Wetter Berlin</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<meta name="description" content="Wetter für Berlin: Tagesverlauf, Regenzeitfenster, Wolkenentwicklung und Wochenvorhersage.">
+<meta name="color-scheme" content="light dark">
 <style>
   :root{
     --bg:#f6f7f9; --card:#fff; --fg:#16181d; --dim:#5b6270; --line:#e3e6eb;
-    --accent:#2f6feb; --warm:#d9822b; --cold:#3b82c4; --rain:#4a7fb5;
-    --night:#eef1f6; --cloud:#7b8798;
-    --shadow:0 1px 2px rgba(16,20,28,.06),0 8px 24px rgba(16,20,28,.06);
+    --accent:#2f6feb; --warm:#d9822b; --cold:#3b82c4; --rain:#3f7cb8;
+    --night:#eceff4; --cloud:#7b8798; --warn:#b5551d; --ok:#2f7d4f;
+    --shadow:0 1px 2px rgba(16,20,28,.06),0 8px 24px rgba(16,20,28,.05);
   }
   @media (prefers-color-scheme:dark){
     :root:not([data-theme="light"]){
       --bg:#0f1216; --card:#171b21; --fg:#e8eaee; --dim:#98a1b0; --line:#252b34;
       --accent:#6aa0ff; --warm:#e5a154; --cold:#6fb0e0; --rain:#6ea3d4;
-      --night:#11151b; --cloud:#8e9aac;
+      --night:#10141a; --cloud:#8e9aac; --warn:#e0975c; --ok:#6bbd8b;
       --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
     }
   }
   :root[data-theme="dark"]{
     --bg:#0f1216; --card:#171b21; --fg:#e8eaee; --dim:#98a1b0; --line:#252b34;
     --accent:#6aa0ff; --warm:#e5a154; --cold:#6fb0e0; --rain:#6ea3d4;
-    --night:#11151b; --cloud:#8e9aac;
+    --night:#10141a; --cloud:#8e9aac; --warn:#e0975c; --ok:#6bbd8b;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.3);
   }
   *{box-sizing:border-box}
@@ -33,13 +34,16 @@
     padding:24px 16px 56px;
   }
   .wrap{max-width:900px;margin:0 auto}
-  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
   h1{font-size:22px;margin:0;letter-spacing:-.01em}
   .stamp{color:var(--dim);font-size:13px;font-variant-numeric:tabular-nums}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
 
-  .now{padding:22px 24px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-  .now .icon{font-size:56px;line-height:1}
+  /* --- Jetzt ------------------------------------------------------------ */
+  .now{padding:22px 24px;margin-bottom:12px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .now .icon{font-size:54px;line-height:1}
   .now .temp{font-size:52px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
   .now .desc{font-size:17px}
   .now .sub{color:var(--dim);font-size:14px;margin-top:2px}
@@ -48,23 +52,35 @@
   .now .grid dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
   .pair{display:contents}
 
+  /* --- Die Antwort in Worten ------------------------------------------- */
+  .antwort{padding:4px 0 0;margin-bottom:16px;display:grid;
+           grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:12px}
+  .antwort .box{padding:15px 18px}
+  .antwort h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;
+              color:var(--dim);margin:0 0 6px;font-weight:600}
+  .antwort p{margin:0;font-size:15px}
+  .antwort .gross{font-size:17px;font-weight:600;display:block;margin-bottom:2px}
+  .antwort .nass{color:var(--rain)}
+  .antwort .trocken{color:var(--ok)}
+  .antwort .achtung{color:var(--warn)}
+
   .summary{padding:18px 24px;margin-bottom:16px}
-  .summary h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:0 0 8px}
+  .summary h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:0 0 8px}
   .summary p{margin:0;font-size:16px}
   .summary .by{color:var(--dim);font-size:12px;margin-top:10px}
 
-  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:24px 0 10px}
+  h2.sec{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);margin:26px 0 10px;font-weight:600}
   .pad{padding:16px 18px 10px}
   /* Auf schmalen Schirmen nicht schrumpfen, sondern seitlich scrollen:
      bei 305 px Breite waere die Achsenbeschriftung effektiv 4,7 px gross. */
   .pad.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  .chart{width:100%;min-width:540px;height:auto;display:block;overflow:visible}
+  .chart{width:100%;min-width:560px;height:auto;display:block;overflow:visible}
   .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--dim);padding:0 20px 14px}
-  .swipe{display:none}
-  @media (max-width:600px){ .swipe{display:inline} }
   .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .swipe{display:none}
+  @media (max-width:620px){ .swipe{display:inline} }
 
-  .days{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+  .days{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:10px}
   .day{padding:14px 10px;text-align:center}
   .day .dow{font-weight:600;font-size:14px}
   .day .date{color:var(--dim);font-size:12px;font-variant-numeric:tabular-nums}
@@ -72,9 +88,11 @@
   .day .hi{font-weight:600;font-variant-numeric:tabular-nums}
   .day .lo{color:var(--dim);font-variant-numeric:tabular-nums}
   .day .rain{color:var(--rain);font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums;min-height:1.2em}
+  .day .boe{color:var(--warn);font-size:11.5px;font-variant-numeric:tabular-nums;min-height:1.2em}
 
   table{width:100%;border-collapse:collapse;font-size:14px}
   .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  caption{text-align:left;padding:14px 12px 4px;color:var(--dim);font-size:12.5px}
   th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
   th:first-child,td:first-child{text-align:left}
   th{color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
@@ -82,21 +100,14 @@
   .hi-t{color:var(--warm);font-variant-numeric:tabular-nums}
   .lo-t{color:var(--cold);font-variant-numeric:tabular-nums}
 
-  #map{height:380px;border-radius:14px;z-index:0}
-  .mapbar{display:flex;align-items:center;gap:12px;padding:12px 16px;flex-wrap:wrap}
-  .mapbar button{
-    font:inherit;font-size:14px;padding:5px 14px;border-radius:8px;cursor:pointer;
-    border:1px solid var(--line);background:var(--card);color:var(--fg);
-  }
-  .mapbar button:hover{border-color:var(--accent);color:var(--accent)}
-  .mapbar input[type=range]{flex:1;min-width:140px;accent-color:var(--accent)}
-  .mapbar .t{font-variant-numeric:tabular-nums;font-size:14px;min-width:104px}
-  .mapbar .t b{font-weight:600}
-  .leaflet-container{background:var(--bg)}
+  .hinweis{padding:14px 20px;color:var(--dim);font-size:13px}
+  .hinweis b{color:var(--fg);font-weight:600}
+  .alt{color:var(--warn)}
 
   footer{margin-top:28px;color:var(--dim);font-size:12.5px}
   footer a{color:var(--accent)}
   .err{padding:18px 24px;color:var(--dim)}
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -107,9 +118,12 @@
     <div class="stamp" id="stamp">wird geladen …</div>
   </header>
 
-  <section class="card now" id="now">
+  <section class="card now" id="now" aria-label="Aktuelles Wetter">
     <div class="err">Aktuelle Werte werden geladen …</div>
   </section>
+
+  <!-- Die drei Fragen, die man morgens hat - in Worten, vor allen Diagrammen -->
+  <section class="antwort" id="antwort" aria-label="Das Wichtigste in Worten"></section>
 
   <section class="card summary" id="summary" hidden>
     <h2>Zusammenfassung</h2>
@@ -117,13 +131,17 @@
     <div class="by" id="summary-by"></div>
   </section>
 
-  <h2 class="sec">Tagesverlauf</h2>
+  <h2 class="sec" id="h-verlauf">Tagesverlauf</h2>
   <div class="card">
-    <div class="pad scroll"><svg id="dayChart" class="chart" viewBox="0 0 720 250" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div class="pad scroll">
+      <svg id="dayChart" class="chart" viewBox="0 0 720 260" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-labelledby="dayChartTitle"><title id="dayChartTitle">Tagesverlauf</title></svg>
+    </div>
     <div class="legend">
       <span><i style="background:var(--warm)"></i>Temperatur</span>
       <span><i style="background:var(--cold);opacity:.55"></i>gefühlt</span>
-      <span><i style="background:var(--rain);opacity:.5"></i>Regenrisiko</span>
+      <span><i style="background:var(--rain);opacity:.55"></i>Regenmenge</span>
+      <span><i style="background:var(--rain);height:2px;border-radius:0"></i>Regenrisiko</span>
       <span><i style="background:var(--night);border:1px solid var(--line)"></i>Nacht</span>
       <span class="swipe">seitlich wischen für den ganzen Tag</span>
     </div>
@@ -131,19 +149,13 @@
 
   <h2 class="sec">Wie sich die Wolken entwickeln</h2>
   <div class="card">
-    <div class="pad scroll"><svg id="cloudChart" class="chart" viewBox="0 0 720 168" preserveAspectRatio="xMidYMid meet"></svg></div>
-    <div class="legend">
-      <span>Je dunkler, desto mehr Bedeckung. Hohe Wolken sind dünn und lassen Sonne durch, tiefe machen den Tag grau.</span>
+    <div class="pad scroll">
+      <svg id="cloudChart" class="chart" viewBox="0 0 720 168" preserveAspectRatio="xMidYMid meet"
+           role="img" aria-labelledby="cloudChartTitle"><title id="cloudChartTitle">Wolkenentwicklung</title></svg>
     </div>
-  </div>
-
-  <h2 class="sec">Regenradar</h2>
-  <div class="card">
-    <div id="map"></div>
-    <div class="mapbar">
-      <button id="play" type="button">▶ Abspielen</button>
-      <input type="range" id="frame" min="0" max="0" value="0" aria-label="Radar-Zeitpunkt">
-      <span class="t" id="frameTime">–</span>
+    <div class="legend">
+      <span>Je dunkler, desto mehr Bedeckung. Hohe Wolken sind dünn und lassen Sonne durch,
+            tiefe machen den Tag grau.</span>
     </div>
   </div>
 
@@ -153,28 +165,43 @@
   <h2 class="sec">Woche im Detail</h2>
   <div class="card scroll">
     <table>
+      <caption>Alle Werte der Wochenvorhersage. Regenrisiko und erwartete Menge stehen
+               nebeneinander, weil ein hohes Risiko bei null Millimeter etwas anderes
+               bedeutet als ein niedriges bei fünf.</caption>
       <thead>
-        <tr><th>Tag</th><th>Wetter</th><th>Max</th><th>Min</th><th>Regen</th><th>Menge</th><th>Wind</th><th>Sonne</th></tr>
+        <tr><th scope="col">Tag</th><th scope="col">Wetter</th><th scope="col">Max</th>
+            <th scope="col">Min</th><th scope="col">Risiko</th><th scope="col">Menge</th>
+            <th scope="col">Wind</th><th scope="col">Böen</th><th scope="col">Sonne</th>
+            <th scope="col">UV</th><th scope="col">Hell</th></tr>
       </thead>
       <tbody id="tbody"></tbody>
     </table>
   </div>
 
+  <div class="card hinweis" style="margin-top:12px">
+    <b>Was „Regenrisiko 30 %" bedeutet:</b> an 30 von 100 Tagen mit dieser Wetterlage
+    fällt messbarer Regen — an 70 bleibt es trocken. Es heißt <em>nicht</em>, dass es
+    30 % der Zeit regnet oder auf 30 % der Fläche.
+    Untersuchungen zeigen, dass genau diese Verwechslung häufig ist und sich am besten
+    beheben lässt, indem die Gegenwahrscheinlichkeit mitgenannt wird. Deshalb steht sie
+    auf dieser Seite überall dabei.
+  </div>
+
   <footer>
-    Vorhersage: <a href="https://open-meteo.com/">Open-Meteo</a> ·
-    Radar: <a href="https://www.rainviewer.com/">RainViewer</a> ·
-    Karte: <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>.
-    Alles wird direkt im Browser geholt — die Seite ist damit immer aktuell, auch ohne neuen Build.
+    Vorhersage: <a href="https://open-meteo.com/">Open-Meteo</a>, direkt im Browser geholt —
+    die Seite ist damit immer aktuell, auch ohne neuen Build, und lädt nichts von einem CDN.
     Die Zusammenfassung schreibt ein lokal laufendes Sprachmodell,
     <a href="https://github.com/mendeltem/wetter">Quelltext</a>.
   </footer>
 
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// ---------------------------------------------------------------- Grundlagen
-const LAT = 52.52, LON = 13.405;
+"use strict";
+// ------------------------------------------------------------- Grundlagen
+const LAT = 52.52, LON = 13.405, NS = "http://www.w3.org/2000/svg";
+const SPEICHER = "wetter-berlin-letzter-stand";
+
 const WMO = {
   0:["Klar","☀️"], 1:["Überwiegend klar","🌤️"], 2:["Teils bewölkt","⛅"], 3:["Bedeckt","☁️"],
   45:["Nebel","🌫️"], 48:["Reifnebel","🌫️"],
@@ -190,18 +217,16 @@ const WMO = {
 };
 const wmo = c => WMO[c] || ["unbekannt","·"];
 const DOW = ["So","Mo","Di","Mi","Do","Fr","Sa"];
-const hhmm = iso => iso.slice(11,16);
-const t1 = v => (v==null ? "–" : v.toFixed(1).replace(".",",") + " °C");
-const NS = "http://www.w3.org/2000/svg";
+const hhmm  = iso => iso.slice(11,16);
+const hh    = iso => iso.slice(11,13);
+const komma = (v,n=1) => v==null ? "–" : v.toFixed(n).replace(".",",");
+const grad  = v => komma(v) + " °C";
+const heuteStr = () => new Date().toLocaleDateString("sv-SE");   // ergibt JJJJ-MM-TT
 
-const API = "https://api.open-meteo.com/v1/forecast"
-  + "?latitude=" + LAT + "&longitude=" + LON
-  + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m"
-  + "&hourly=temperature_2m,apparent_temperature,precipitation,precipitation_probability,"
-  + "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,weather_code,is_day"
-  + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,"
-  + "precipitation_probability_max,wind_speed_10m_max,sunrise,sunset"
-  + "&timezone=Europe%2FBerlin&forecast_days=7";
+// Emoji brauchen ein Label, sonst liest ein Screenreader "Wolke hinter Sonne"
+// mitten im Satz vor.
+const bild = (zeichen, label) =>
+  '<span role="img" aria-label="' + label + '">' + zeichen + '</span>';
 
 function el(name, attrs, text){
   const n = document.createElementNS(NS, name);
@@ -210,16 +235,112 @@ function el(name, attrs, text){
   return n;
 }
 
+const API = "https://api.open-meteo.com/v1/forecast"
+  + "?latitude=" + LAT + "&longitude=" + LON
+  + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,"
+  + "weather_code,wind_speed_10m,wind_gusts_10m,is_day"
+  + "&hourly=temperature_2m,apparent_temperature,precipitation,precipitation_probability,"
+  + "cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_gusts_10m,weather_code,is_day"
+  + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,"
+  + "precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,uv_index_max,"
+  + "sunshine_duration,daylight_duration,sunrise,sunset"
+  + "&timezone=Europe%2FBerlin&forecast_days=7&past_days=1";
+
+// ------------------------------------------------- Das Wichtigste in Worten
+// Nutzer wollen keine Kurve lesen, sondern eine Antwort. Die drei Fragen:
+// regnet es, ist es anders als gestern, was ziehe ich an.
+
+/** Sucht ab jetzt das naechste Zeitfenster mit Regen. */
+function regenfenster(h){
+  const jetzt = Date.now();
+  let start = -1;
+  for(let i = 0; i < h.time.length; i++){
+    if(new Date(h.time[i]).getTime() < jetzt - 36e5) continue;
+    const mm = h.precipitation[i] || 0, p = h.precipitation_probability[i] || 0;
+    if(mm >= 0.1 || p >= 50){ start = i; break; }
+    if(new Date(h.time[i]).getTime() > jetzt + 24*36e5) break;
+  }
+  if(start < 0) return null;
+  let ende = start, summe = 0, pmax = 0;
+  while(ende < h.time.length){
+    const mm = h.precipitation[ende] || 0, p = h.precipitation_probability[ende] || 0;
+    if(!(mm >= 0.1 || p >= 50)) break;
+    summe += mm; pmax = Math.max(pmax, p); ende++;
+  }
+  return {von: h.time[start], bis: h.time[ende] || h.time[ende-1],
+          stunden: ende - start, mm: summe, p: pmax};
+}
+
+function antwortRegen(h){
+  const f = regenfenster(h);
+  if(!f) return {titel:"Regen", klasse:"trocken",
+                 gross:"Trocken", text:"In den nächsten 24 Stunden kein Regen erwartet."};
+  const heute = f.von.slice(0,10) === heuteStr();
+  const wann = (heute ? "ab " : "morgen ab ") + hhmm(f.von) + " Uhr";
+  // Der lehrreiche Fall: hohe Wahrscheinlichkeit, kaum Menge.
+  if(f.mm < 0.2)
+    return {titel:"Regen", klasse:"nass", gross: wann,
+            text: f.p + " % Risiko, aber unter 0,2 mm erwartet — höchstens ein paar Tropfen. "
+                  + "An " + (100-f.p) + " von 100 solchen Tagen bleibt es ganz trocken."};
+  return {titel:"Regen", klasse:"nass", gross: wann,
+          text: "etwa " + f.stunden + (f.stunden === 1 ? " Stunde" : " Stunden") + ", "
+                + komma(f.mm) + " mm. Risiko " + f.p + " % — an " + (100-f.p)
+                + " von 100 solchen Tagen bleibt es trocken."};
+}
+
+function antwortVergleich(dd, iHeute){
+  if(iHeute < 1) return null;
+  const d = dd.temperature_2m_max[iHeute] - dd.temperature_2m_max[iHeute-1];
+  const sonne = dd.sunshine_duration[iHeute] / 3600;
+  const wort = Math.abs(d) < 1 ? "genauso warm wie gestern"
+             : komma(Math.abs(d)) + " Grad " + (d < 0 ? "kälter" : "wärmer") + " als gestern";
+  return {titel:"Im Vergleich", klasse:"", gross: wort,
+          text:"Höchstwert " + grad(dd.temperature_2m_max[iHeute]) + ", gestern "
+               + grad(dd.temperature_2m_max[iHeute-1]) + ". "
+               + komma(sonne) + " Sonnenstunden erwartet."};
+}
+
+function antwortAnziehen(c, dd, iHeute, h){
+  const gefuehlt = c.apparent_temperature;
+  const boe = dd.wind_gusts_10m_max[iHeute];
+  let stueck;
+  if(gefuehlt >= 24) stueck = "T-Shirt reicht";
+  else if(gefuehlt >= 19) stueck = "T-Shirt, abends etwas Langes";
+  else if(gefuehlt >= 14) stueck = "Langärmlig oder leichte Jacke";
+  else if(gefuehlt >= 9)  stueck = "Jacke";
+  else if(gefuehlt >= 3)  stueck = "Warme Jacke";
+  else stueck = "Warme Jacke, Mütze";
+
+  const zusatz = [];
+  const f = regenfenster(h);
+  if(f && f.mm >= 0.2 && f.von.slice(0,10) === heuteStr()) zusatz.push("Schirm");
+  if(boe >= 50) zusatz.push("windfest — Böen bis " + Math.round(boe) + " km/h");
+  else if(boe >= 35) zusatz.push("es wird böig");
+  if(dd.uv_index_max[iHeute] >= 6) zusatz.push("UV " + komma(dd.uv_index_max[iHeute],0) + ", Sonnenschutz");
+
+  return {titel:"Anziehen", klasse: boe >= 50 ? "achtung" : "", gross: stueck,
+          text:"Gefühlt " + grad(gefuehlt)
+               + (zusatz.length ? ". " + zusatz.join(", ") + "." : ".")};
+}
+
+function zeigeAntwort(c, dd, h, iHeute){
+  const boxen = [antwortRegen(h), antwortVergleich(dd, iHeute),
+                 antwortAnziehen(c, dd, iHeute, h)].filter(Boolean);
+  document.getElementById("antwort").innerHTML = boxen.map(b =>
+    '<div class="card box"><h3>' + b.titel + '</h3><p class="' + b.klasse + '">' +
+    '<span class="gross">' + b.gross + '</span>' + b.text + '</p></div>').join("");
+}
+
 // ------------------------------------------------------------ Tagesverlauf
-// Temperatur als Linie, gefuehlte als duennere Linie, Regenrisiko als Balken
-// darunter, Nacht hinterlegt. Alles aus den Stundenwerten des heutigen Tages.
-function drawDay(h, heute){
+function drawDay(h){
   const svg = document.getElementById("dayChart");
+  const heute = heuteStr();
   svg.textContent = "";
+  svg.appendChild(el("title", {id:"dayChartTitle"}, "Tagesverlauf"));
   const idx = h.time.map((t,i)=>[t,i]).filter(([t])=>t.slice(0,10)===heute).map(([,i])=>i);
   if(!idx.length) return;
 
-  const W=720, H=250, L=38, R=14, T=18, TEMP_H=140, GAP=26, RAIN_H=42;
+  const W=720, H=260, L=40, R=42, T=18, TEMP_H=142, GAP=26, RAIN_H=48;
   const x = i => L + (W-L-R) * (i/(idx.length-1));
 
   const temps = idx.flatMap(i=>[h.temperature_2m[i], h.apparent_temperature[i]]);
@@ -227,8 +348,7 @@ function drawDay(h, heute){
   const pad = Math.max(1, (hi-lo)*0.15); lo -= pad; hi += pad;
   const y = v => T + TEMP_H * (1 - (v-lo)/(hi-lo));
 
-  // Nacht hinterlegen
-  idx.forEach((i,k)=>{
+  idx.forEach((i,k)=>{                                  // Nacht hinterlegen
     if(h.is_day[i]) return;
     const x0 = k===0 ? L : (x(k)+x(k-1))/2;
     const x1 = k===idx.length-1 ? W-R : (x(k)+x(k+1))/2;
@@ -236,7 +356,6 @@ function drawDay(h, heute){
                                fill:"var(--night)"}));
   });
 
-  // Gitter und Achsenbeschriftung
   [0,.5,1].forEach(f=>{
     const v = lo + (hi-lo)*f, yy = y(v);
     svg.appendChild(el("line",{x1:L, y1:yy, x2:W-R, y2:yy, stroke:"var(--line)","stroke-width":1}));
@@ -244,66 +363,77 @@ function drawDay(h, heute){
                                fill:"var(--dim)"}, Math.round(v)+"°"));
   });
 
-  const pts = k => idx.map((i,j)=>x(j)+","+y(k==="t"?h.temperature_2m[i]:h.apparent_temperature[i])).join(" ");
-  // Flaeche unter der Temperaturkurve
-  svg.appendChild(el("polygon",{
-    points: L+","+(T+TEMP_H)+" "+pts("t")+" "+(W-R)+","+(T+TEMP_H),
-    fill:"var(--warm)", opacity:.10}));
-  svg.appendChild(el("polyline",{points:pts("a"), fill:"none", stroke:"var(--cold)",
-                                 "stroke-width":1.5, opacity:.55, "stroke-dasharray":"3 3"}));
-  svg.appendChild(el("polyline",{points:pts("t"), fill:"none", stroke:"var(--warm)",
+  const pts = feld => idx.map((i,j)=>x(j)+","+y(h[feld][i])).join(" ");
+  svg.appendChild(el("polygon",{points: L+","+(T+TEMP_H)+" "+pts("temperature_2m")+" "+(W-R)+","+(T+TEMP_H),
+                                fill:"var(--warm)", opacity:.10}));
+  svg.appendChild(el("polyline",{points:pts("apparent_temperature"), fill:"none",
+                                 stroke:"var(--cold)","stroke-width":1.5, opacity:.55,
+                                 "stroke-dasharray":"3 3"}));
+  svg.appendChild(el("polyline",{points:pts("temperature_2m"), fill:"none", stroke:"var(--warm)",
                                  "stroke-width":2.5, "stroke-linejoin":"round"}));
 
-  // Regenrisiko als Balken
+  // Regen: MENGE als Balken (die entscheidet ueber den Schirm),
+  // RISIKO als Linie darueber. Vorher stand nur das Risiko da - irrefuehrend,
+  // weil 75 Prozent bei 0,0 mm etwas anderes heisst als 75 Prozent bei 5 mm.
   const rTop = T + TEMP_H + GAP;
+  const mmMax = Math.max(0.5, ...idx.map(i=>h.precipitation[i]||0));
   svg.appendChild(el("line",{x1:L, y1:rTop+RAIN_H, x2:W-R, y2:rTop+RAIN_H,
                              stroke:"var(--line)","stroke-width":1}));
   const bw = Math.max(3, (W-L-R)/idx.length - 3);
   idx.forEach((i,k)=>{
-    const p = h.precipitation_probability[i] || 0;
-    if(p <= 0) return;
-    const hgt = RAIN_H * p/100;
+    const mm = h.precipitation[i] || 0;
+    if(mm <= 0) return;
+    const hgt = Math.max(1.5, RAIN_H * mm/mmMax);
     svg.appendChild(el("rect",{x:x(k)-bw/2, y:rTop+RAIN_H-hgt, width:bw, height:hgt,
-                               fill:"var(--rain)", opacity:.5, rx:1.5}));
+                               fill:"var(--rain)", opacity:.55, rx:1.5}))
+       .appendChild(el("title",{}, hh(h.time[i])+" Uhr: "+komma(mm)+" mm"));
   });
-  svg.appendChild(el("text",{x:L-8, y:rTop+8, "text-anchor":"end","font-size":11,
-                             fill:"var(--dim)"},"100%"));
-  svg.appendChild(el("text",{x:L-8, y:rTop+RAIN_H+4, "text-anchor":"end","font-size":11,
-                             fill:"var(--dim)"},"0"));
+  svg.appendChild(el("polyline",{
+    points: idx.map((i,k)=>x(k)+","+(rTop+RAIN_H-RAIN_H*(h.precipitation_probability[i]||0)/100)).join(" "),
+    fill:"none", stroke:"var(--rain)", "stroke-width":1.5, opacity:.85}));
 
-  // Stundenbeschriftung alle drei Stunden
+  svg.appendChild(el("text",{x:L-8, y:rTop+8, "text-anchor":"end","font-size":11,
+                             fill:"var(--dim)"}, komma(mmMax)+"mm"));
+  svg.appendChild(el("text",{x:W-R+6, y:rTop+8, "font-size":11, fill:"var(--rain)"},"100%"));
+  svg.appendChild(el("text",{x:W-R+6, y:rTop+RAIN_H+4, "font-size":11, fill:"var(--rain)"},"0%"));
+
   idx.forEach((i,k)=>{
     if(k % 3) return;
     svg.appendChild(el("text",{x:x(k), y:H-6, "text-anchor":"middle", "font-size":11,
-                               fill:"var(--dim)"}, h.time[i].slice(11,13)));
+                               fill:"var(--dim)"}, hh(h.time[i])));
   });
 
-  // Marker fuer die aktuelle Stunde
   const jetzt = new Date().getHours();
-  const k = idx.findIndex(i => +h.time[i].slice(11,13) === jetzt);
+  const k = idx.findIndex(i => +hh(h.time[i]) === jetzt);
   if(k >= 0){
     svg.appendChild(el("line",{x1:x(k), y1:T-4, x2:x(k), y2:rTop+RAIN_H,
                                stroke:"var(--accent)","stroke-width":1.5,"stroke-dasharray":"4 3"}));
-    svg.appendChild(el("circle",{cx:x(k), cy:y(h.temperature_2m[idx[k]]), r:4,
-                                 fill:"var(--accent)"}));
-    svg.appendChild(el("text",{x:Math.min(x(k), W-R-16), y:T-8, "text-anchor":"middle",
-                               "font-size":11, fill:"var(--accent)"},"jetzt"));
+    svg.appendChild(el("circle",{cx:x(k), cy:y(h.temperature_2m[idx[k]]), r:4, fill:"var(--accent)"}));
+    svg.appendChild(el("text",{x:Math.min(Math.max(x(k),L+12), W-R-12), y:T-8,
+                               "text-anchor":"middle","font-size":11, fill:"var(--accent)"},"jetzt"));
   }
+
+  // Beschreibung fuer Screenreader - das Diagramm selbst ist fuer sie stumm
+  const tmin = Math.min(...idx.map(i=>h.temperature_2m[i]));
+  const tmax = Math.max(...idx.map(i=>h.temperature_2m[i]));
+  const regen = idx.filter(i=>(h.precipitation[i]||0) >= 0.1).map(i=>hh(h.time[i]));
+  svg.querySelector("title").textContent =
+    "Tagesverlauf: " + komma(tmin) + " bis " + komma(tmax) + " Grad. "
+    + (regen.length ? "Regen um " + regen.join(", ") + " Uhr."
+                    : "Kein messbarer Regen. Alle Werte in der Wochentabelle.");
 }
 
-// ------------------------------------------------ Wolken in drei Hoehenlagen
-function drawClouds(h, heute){
+// --------------------------------------------- Wolken in drei Hoehenlagen
+function drawClouds(h){
   const svg = document.getElementById("cloudChart");
+  const heute = heuteStr();
   svg.textContent = "";
+  svg.appendChild(el("title", {id:"cloudChartTitle"}, "Wolkenentwicklung"));
   const idx = h.time.map((t,i)=>[t,i]).filter(([t])=>t.slice(0,10)===heute).map(([,i])=>i);
   if(!idx.length) return;
 
   const W=720, L=58, R=14, T=14, ROW=36, GAP=6;
-  const reihen = [
-    ["hoch",   "cloud_cover_high"],
-    ["mittel", "cloud_cover_mid"],
-    ["tief",   "cloud_cover_low"],
-  ];
+  const reihen = [["hoch","cloud_cover_high"],["mittel","cloud_cover_mid"],["tief","cloud_cover_low"]];
   const cw = (W-L-R)/idx.length;
 
   reihen.forEach(([label, feld], r)=>{
@@ -312,10 +442,9 @@ function drawClouds(h, heute){
                                fill:"var(--dim)"}, label));
     idx.forEach((i,k)=>{
       const v = h[feld][i] || 0;
-      svg.appendChild(el("rect",{
-        x:L+k*cw, y:yy, width:Math.max(1,cw-1), height:ROW, rx:2,
-        fill:"var(--cloud)", opacity:(0.06 + 0.94*(v/100)).toFixed(3)
-      })).appendChild(el("title",{}, h.time[i].slice(11,16)+" — "+label+": "+v+" %"));
+      svg.appendChild(el("rect",{x:L+k*cw, y:yy, width:Math.max(1,cw-1), height:ROW, rx:2,
+                                 fill:"var(--cloud)", opacity:(0.06+0.94*(v/100)).toFixed(3)}))
+         .appendChild(el("title",{}, hhmm(h.time[i])+" — "+label+": "+v+" %"));
     });
   });
 
@@ -323,147 +452,114 @@ function drawClouds(h, heute){
   idx.forEach((i,k)=>{
     if(k % 3) return;
     svg.appendChild(el("text",{x:L+k*cw+cw/2, y:base+14, "text-anchor":"middle",
-                               "font-size":11, fill:"var(--dim)"}, h.time[i].slice(11,13)));
+                               "font-size":11, fill:"var(--dim)"}, hh(h.time[i])));
   });
 
   const jetzt = new Date().getHours();
-  const k = idx.findIndex(i => +h.time[i].slice(11,13) === jetzt);
-  if(k >= 0){
+  const k = idx.findIndex(i => +hh(h.time[i]) === jetzt);
+  if(k >= 0)
     svg.appendChild(el("rect",{x:L+k*cw, y:T-3, width:Math.max(1,cw-1),
-                               height:reihen.length*(ROW+GAP)-GAP+6,
-                               fill:"none", stroke:"var(--accent)", "stroke-width":1.5, rx:3}));
-  }
+                               height:reihen.length*(ROW+GAP)-GAP+6, fill:"none",
+                               stroke:"var(--accent)","stroke-width":1.5, rx:3}));
+
+  const mittel = f => Math.round(idx.reduce((s,i)=>s+(h[f][i]||0),0)/idx.length);
+  svg.querySelector("title").textContent =
+    "Wolkenentwicklung heute im Tagesmittel: tief " + mittel("cloud_cover_low")
+    + " Prozent, mittel " + mittel("cloud_cover_mid")
+    + " Prozent, hoch " + mittel("cloud_cover_high") + " Prozent.";
 }
 
-// ------------------------------------------------------------------- Karte
-let map, radarLayers = [], radarTimes = [], aktuell = 0, timer = null;
+// -------------------------------------------------------------- Darstellen
+function darstellen(d, alter){
+  const c = d.current, dd = d.daily, h = d.hourly;
+  const [txt, ic] = wmo(c.weather_code);
+  const heute = heuteStr();
+  const iHeute = Math.max(0, dd.time.indexOf(heute));
 
-function initMap(){
-  map = L.map("map", {center:[LAT, LON], zoom:8, scrollWheelZoom:false});
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom:18, attribution:"© OpenStreetMap"
-  }).addTo(map);
-  L.circleMarker([LAT, LON], {radius:5, color:"#e5484d", fillColor:"#e5484d",
-                              fillOpacity:.9, weight:2}).addTo(map).bindTooltip("Berlin");
-}
-
-async function initRadar(){
-  let d;
-  try{
-    const r = await fetch("https://api.rainviewer.com/public/weather-maps.json", {cache:"no-store"});
-    d = await r.json();
-  }catch(e){
-    document.getElementById("frameTime").textContent = "Radar nicht erreichbar";
-    return;
-  }
-  const rad = d.radar || {};
-  const frames = (rad.past || []).concat(rad.nowcast || []);
-  if(!frames.length){
-    document.getElementById("frameTime").textContent = "keine Radarbilder";
-    return;
-  }
-  radarTimes = frames.map(f => f.time);
-  radarLayers = frames.map(f =>
-    L.tileLayer(d.host + f.path + "/256/{z}/{x}/{y}/2/1_1.png",
-                {opacity:0, zIndex:10, maxZoom:12}).addTo(map));
-
-  const slider = document.getElementById("frame");
-  slider.max = frames.length - 1;
-  slider.value = (rad.past || []).length - 1;   // der juengste echte Messwert
-  slider.addEventListener("input", () => zeige(+slider.value));
-  document.getElementById("play").addEventListener("click", umschalten);
-  zeige(+slider.value);
-}
-
-function zeige(i){
-  if(!radarLayers.length) return;
-  radarLayers.forEach((l,k)=> l.setOpacity(k===i ? 0.72 : 0));
-  aktuell = i;
-  document.getElementById("frame").value = i;
-  const t = new Date(radarTimes[i]*1000);
-  const kuenftig = radarTimes[i] > Date.now()/1000;
-  document.getElementById("frameTime").innerHTML =
-    "<b>" + t.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}) + "</b> Uhr" +
-    (kuenftig ? " (Prognose)" : "");
-}
-
-function umschalten(){
-  const b = document.getElementById("play");
-  if(timer){ clearInterval(timer); timer = null; b.textContent = "▶ Abspielen"; return; }
-  b.textContent = "❚❚ Pause";
-  timer = setInterval(()=> zeige((aktuell+1) % radarLayers.length), 550);
-}
-
-// -------------------------------------------------------------------- Laden
-async function load(){
-  let d;
-  try {
-    const r = await fetch(API, {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP " + r.status);
-    d = await r.json();
-  } catch(e){
-    document.getElementById("now").innerHTML =
-      '<div class="err">Wetterdaten nicht erreichbar (' + e.message + '). ' +
-      'Die Seite braucht dafür eine Internetverbindung.</div>';
-    document.getElementById("stamp").textContent = "offline";
-    return;
-  }
-
-  const c = d.current, dd = d.daily, h = d.hourly, [txt, ic] = wmo(c.weather_code);
-  const heute = dd.time[0];
-
-  document.getElementById("stamp").textContent =
-    "Stand " + hhmm(c.time) + " Uhr · " + new Date(c.time).toLocaleDateString("de-DE",
-      {weekday:"long", day:"numeric", month:"long"});
+  document.getElementById("stamp").innerHTML = alter
+    ? '<span class="alt">Stand ' + alter + ' — keine Verbindung, Werte können veraltet sein</span>'
+    : "Stand " + hhmm(c.time) + " Uhr · " + new Date(c.time).toLocaleDateString("de-DE",
+        {weekday:"long", day:"numeric", month:"long"});
 
   document.getElementById("now").innerHTML =
-    '<div class="icon">' + ic + '</div>' +
+    '<div class="icon">' + bild(ic, txt) + '</div>' +
     '<div><div class="temp">' + Math.round(c.temperature_2m) + '°</div>' +
     '<div class="desc">' + txt + '</div>' +
-    '<div class="sub">gefühlt ' + t1(c.apparent_temperature) + '</div></div>' +
+    '<div class="sub">gefühlt ' + grad(c.apparent_temperature) + '</div></div>' +
     '<dl class="grid">' +
       '<div class="pair"><dt>Wind</dt><dd>' + Math.round(c.wind_speed_10m) + ' km/h</dd></div>' +
+      '<div class="pair"><dt>Böen</dt><dd>' + Math.round(c.wind_gusts_10m) + ' km/h</dd></div>' +
       '<div class="pair"><dt>Feuchte</dt><dd>' + c.relative_humidity_2m + ' %</dd></div>' +
-      '<div class="pair"><dt>Niederschlag</dt><dd>' + c.precipitation.toFixed(1).replace(".",",") + ' mm</dd></div>' +
-      '<div class="pair"><dt>Sonne</dt><dd>' + hhmm(dd.sunrise[0]) + '–' + hhmm(dd.sunset[0]) + '</dd></div>' +
+      '<div class="pair"><dt>Hell</dt><dd>' + hhmm(dd.sunrise[iHeute]) + '–' + hhmm(dd.sunset[iHeute]) + '</dd></div>' +
     '</dl>';
 
-  drawDay(h, heute);
-  drawClouds(h, heute);
+  zeigeAntwort(c, dd, h, iHeute);
+  drawDay(h);
+  drawClouds(h);
 
-  const days = document.getElementById("days");
-  const tb = document.getElementById("tbody");
+  const days = document.getElementById("days"), tb = document.getElementById("tbody");
   days.innerHTML = ""; tb.innerHTML = "";
 
   dd.time.forEach((iso, i) => {
+    if(i < iHeute) return;                       // Vortag nur fuer den Vergleich
     const dt = new Date(iso + "T12:00:00");
     const [dtxt, dic] = wmo(dd.weather_code[i]);
-    const dow = i === 0 ? "Heute" : DOW[dt.getDay()];
-    const prob = dd.precipitation_probability_max[i];
+    const dow = i === iHeute ? "Heute" : DOW[dt.getDay()];
+    const p = dd.precipitation_probability_max[i], boe = dd.wind_gusts_10m_max[i];
+    const datum = dt.getDate() + "." + (dt.getMonth()+1) + ".";
 
     const e = document.createElement("div");
     e.className = "card day";
     e.innerHTML =
-      '<div class="dow">' + dow + '</div>' +
-      '<div class="date">' + dt.getDate() + "." + (dt.getMonth()+1) + '.</div>' +
-      '<div class="ic" title="' + dtxt + '">' + dic + '</div>' +
+      '<div class="dow">' + dow + '</div><div class="date">' + datum + '</div>' +
+      '<div class="ic">' + bild(dic, dtxt) + '</div>' +
       '<div><span class="hi">' + Math.round(dd.temperature_2m_max[i]) + '°</span> ' +
       '<span class="lo">' + Math.round(dd.temperature_2m_min[i]) + '°</span></div>' +
-      '<div class="rain">' + (prob >= 20 ? prob + ' %' : "") + '</div>';
+      '<div class="rain">' + (p >= 20 ? p + ' % · ' + komma(dd.precipitation_sum[i]) + ' mm' : "") + '</div>' +
+      '<div class="boe">' + (boe >= 45 ? '↯ ' + Math.round(boe) + ' km/h' : "") + '</div>';
     days.appendChild(e);
 
     const tr = document.createElement("tr");
     tr.innerHTML =
-      "<td>" + dow + ", " + dt.getDate() + "." + (dt.getMonth()+1) + ".</td>" +
-      "<td>" + dic + " " + dtxt + "</td>" +
-      '<td class="hi-t">' + t1(dd.temperature_2m_max[i]) + "</td>" +
-      '<td class="lo-t">' + t1(dd.temperature_2m_min[i]) + "</td>" +
-      "<td>" + prob + " %</td>" +
-      "<td>" + dd.precipitation_sum[i].toFixed(1).replace(".",",") + " mm</td>" +
+      '<th scope="row">' + dow + ", " + datum + "</th>" +
+      "<td>" + bild(dic, "") + " " + dtxt + "</td>" +
+      '<td class="hi-t">' + grad(dd.temperature_2m_max[i]) + "</td>" +
+      '<td class="lo-t">' + grad(dd.temperature_2m_min[i]) + "</td>" +
+      "<td>" + p + " %</td>" +
+      "<td>" + komma(dd.precipitation_sum[i]) + " mm</td>" +
       "<td>" + Math.round(dd.wind_speed_10m_max[i]) + " km/h</td>" +
+      "<td>" + Math.round(boe) + " km/h</td>" +
+      "<td>" + komma(dd.sunshine_duration[i]/3600) + " h</td>" +
+      "<td>" + komma(dd.uv_index_max[i], 0) + "</td>" +
       "<td>" + hhmm(dd.sunrise[i]) + "–" + hhmm(dd.sunset[i]) + "</td>";
     tb.appendChild(tr);
   });
+}
+
+// ------------------------------------------------------------------ Laden
+async function load(){
+  try {
+    const r = await fetch(API, {cache:"no-store"});
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    try{ localStorage.setItem(SPEICHER, JSON.stringify({zeit:Date.now(), daten:d})); }
+    catch(e){ /* privates Fenster, Speicher gesperrt - egal */ }
+    darstellen(d, null);
+  } catch(e){
+    // Kein Netz: den letzten Stand zeigen statt einer leeren Seite. Deutlich
+    // als alt gekennzeichnet, damit niemand veraltete Werte fuer aktuell nimmt.
+    let alt = null;
+    try{ alt = JSON.parse(localStorage.getItem(SPEICHER) || "null"); }catch(e2){}
+    if(alt && alt.daten){
+      darstellen(alt.daten, new Date(alt.zeit).toLocaleString("de-DE",
+        {day:"numeric", month:"numeric", hour:"2-digit", minute:"2-digit"}));
+    } else {
+      document.getElementById("now").innerHTML =
+        '<div class="err">Wetterdaten nicht erreichbar (' + e.message + '). ' +
+        'Die Seite braucht dafür eine Internetverbindung.</div>';
+      document.getElementById("stamp").textContent = "offline";
+    }
+  }
 }
 
 async function loadSummary(){
@@ -481,10 +577,20 @@ async function loadSummary(){
 
 load();
 loadSummary();
-if(window.L){ initMap(); initRadar(); }
-else document.getElementById("map").innerHTML =
-  '<div class="err">Kartenbibliothek nicht geladen — der Rest der Seite funktioniert trotzdem.</div>';
-setInterval(load, 10 * 60 * 1000);
+
+// Nur nachladen, wenn die Seite auch sichtbar ist - ein Tab im Hintergrund
+// braucht keine Abfrage alle zehn Minuten.
+let ticker = null;
+function ticken(an){
+  if(an && !ticker) ticker = setInterval(load, 10*60*1000);
+  if(!an && ticker){ clearInterval(ticker); ticker = null; }
+}
+document.addEventListener("visibilitychange", ()=>{
+  const sichtbar = document.visibilityState === "visible";
+  ticken(sichtbar);
+  if(sichtbar) load();
+});
+ticken(document.visibilityState === "visible");
 </script>
 </body>
 </html>
