@@ -271,6 +271,15 @@ function regenfenster(h){
           stunden: ende - start, mm: summe, p: pmax};
 }
 
+/** Die Gegenwahrscheinlichkeit in Worten - der wirksamste Kniff gegen das
+ *  Missverstaendnis, "30 %" sei ein Anteil der Zeit oder der Flaeche.
+ *  Ab 95 % schweigt sie: "an 0 von 100 Tagen bleibt es trocken" ist kein
+ *  Hinweis mehr, sondern liest sich wie ein Rechenfehler. */
+function gegenwahrscheinlichkeit(p){
+  if(p >= 95 || p <= 5) return "";
+  return " An " + (100-p) + " von 100 solchen Tagen bleibt es trocken.";
+}
+
 function antwortRegen(h){
   const f = regenfenster(h);
   if(!f) return {titel:"Regen", klasse:"trocken",
@@ -280,12 +289,12 @@ function antwortRegen(h){
   // Der lehrreiche Fall: hohe Wahrscheinlichkeit, kaum Menge.
   if(f.mm < 0.2)
     return {titel:"Regen", klasse:"nass", gross: wann,
-            text: f.p + " % Risiko, aber unter 0,2 mm erwartet — höchstens ein paar Tropfen. "
-                  + "An " + (100-f.p) + " von 100 solchen Tagen bleibt es ganz trocken."};
+            text: f.p + " % Risiko, aber unter 0,2 mm erwartet — höchstens ein paar Tropfen."
+                  + gegenwahrscheinlichkeit(f.p)};
   return {titel:"Regen", klasse:"nass", gross: wann,
           text: "etwa " + f.stunden + (f.stunden === 1 ? " Stunde" : " Stunden") + ", "
-                + komma(f.mm) + " mm. Risiko " + f.p + " % — an " + (100-f.p)
-                + " von 100 solchen Tagen bleibt es trocken."};
+                + komma(f.mm) + " mm. Risiko " + f.p + " %."
+                + gegenwahrscheinlichkeit(f.p)};
 }
 
 function antwortVergleich(dd, iHeute){
