@@ -13,7 +13,7 @@
  * VERSION bei jeder Aenderung der Huelle hochzaehlen, sonst behalten
  * installierte Geraete die alte Fassung, bis der Cache verfaellt.
  */
-const VERSION = "v3";
+const VERSION = "v4";
 const HUELLE = "wetter-huelle-" + VERSION;
 const DATEN  = "wetter-daten-" + VERSION;
 
@@ -61,16 +61,22 @@ self.addEventListener("fetch", e => {
 
   // --- Daten: erst Netz, dann Cache ------------------------------------
   if (istDaten(url)) {
+    // Schluessel ohne Query. Zwei Gruende: die Seite haengte einen
+    // Zeitstempel an (?t=...), womit jeder Aufruf einen eigenen Eintrag
+    // erzeugt haette und der Rueckfall NIE getroffen haette. Und ein
+    // Request mit cache:"no-store" laesst sich gar nicht ablegen - ein
+    // frischer Request ohne diese Einstellung schon.
+    const schluessel = new Request(url.origin + url.pathname);
     e.respondWith((async () => {
       try {
         const antwort = await fetch(req);
         if (antwort && antwort.ok) {
           const c = await caches.open(DATEN);
-          c.put(req, antwort.clone());
+          await c.put(schluessel, antwort.clone()).catch(() => {});
         }
         return antwort;
       } catch (_) {
-        const alt = await caches.match(req);
+        const alt = await caches.match(schluessel);
         if (alt) return alt;
         // Ohne Netz UND ohne Cache: die Seite faengt das ab und zeigt
         // ihren localStorage-Stand.

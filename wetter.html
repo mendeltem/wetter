@@ -565,7 +565,9 @@ function darstellen(d, alter){
 // ------------------------------------------------------------------ Laden
 async function load(){
   try {
-    const r = await fetch(API, {cache:"no-store"});
+    // no-cache statt no-store: erzwingt Revalidierung, laesst sich aber
+    // anders als no-store im Service-Worker-Cache ablegen.
+    const r = await fetch(API, {cache:"no-cache"});
     if(!r.ok) throw new Error("HTTP " + r.status);
     const d = await r.json();
     try{ localStorage.setItem(SPEICHER, JSON.stringify({zeit:Date.now(), daten:d})); }
@@ -589,7 +591,7 @@ async function load(){
 
 async function loadSummary(){
   try {
-    const r = await fetch("zusammenfassung.json?t=" + Date.now(), {cache:"no-store"});
+    const r = await fetch("zusammenfassung.json", {cache:"no-cache"});
     if(!r.ok) return;
     const s = await r.json();
     if(!s.text) return;
